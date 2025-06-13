@@ -4,6 +4,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.text.SimpleDateFormat
+import java.util.*
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -20,7 +22,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val createTable = """
             CREATE TABLE $TABLE_HOURS (
                 $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                $COLUMN_HOURS TEXT NOT NULL,
+                $COLUMN_HOURS REAL NOT NULL,
                 $COLUMN_DATE TEXT NOT NULL
             )
         """.trimIndent()
@@ -32,8 +34,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         onCreate(db)
     }
 
-    fun addHours(hours: String, date: String): Long {
+    fun addHours(hours: Double): Long {
         val db = this.writableDatabase
+        val date = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date())
         val values = ContentValues().apply {
             put(COLUMN_HOURS, hours)
             put(COLUMN_DATE, date)
@@ -57,7 +60,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         with(cursor) {
             while (moveToNext()) {
                 val id = getLong(getColumnIndexOrThrow(COLUMN_ID))
-                val hours = getString(getColumnIndexOrThrow(COLUMN_HOURS))
+                val hours = getDouble(getColumnIndexOrThrow(COLUMN_HOURS))
                 val date = getString(getColumnIndexOrThrow(COLUMN_DATE))
                 hoursList.add(HoursEntry(id, hours, date))
             }
@@ -66,7 +69,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return hoursList
     }
 
-    fun updateHours(id: Long, hours: String) {
+    fun updateHours(id: Long, hours: Double) {
         val db = this.writableDatabase
         val values = ContentValues().apply {
             put(COLUMN_HOURS, hours)
@@ -82,6 +85,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
 data class HoursEntry(
     val id: Long,
-    val hours: String,
+    val hours: Double,
     val date: String
 ) 

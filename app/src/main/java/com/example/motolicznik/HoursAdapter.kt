@@ -8,34 +8,51 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.example.motolicznik.databinding.ItemHoursBinding
 
 class HoursAdapter(
-    context: Context,
-    private val hoursList: List<HoursEntry>,
-    private val onEditClick: (Long, String) -> Unit
-) : ArrayAdapter<HoursEntry>(context, 0, hoursList) {
+    private val onEditClick: (HoursEntry) -> Unit,
+    private val onDeleteClick: (HoursEntry) -> Unit
+) : ListAdapter<HoursEntry, HoursAdapter.HoursViewHolder>(HoursDiffCallback()) {
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val view = convertView ?: LayoutInflater.from(context)
-            .inflate(R.layout.item_hours, parent, false)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HoursViewHolder {
+        val binding = ItemHoursBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return HoursViewHolder(binding)
+    }
 
-        val entry = hoursList[position]
-        val db = DatabaseHelper(context)
+    override fun onBindViewHolder(holder: HoursViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
 
-        view.findViewById<TextView>(R.id.numberTextView).text = (position + 1).toString()
-        view.findViewById<TextView>(R.id.hoursTextView).text = entry.hours
-        view.findViewById<TextView>(R.id.dateTextView).text = entry.date
+    inner class HoursViewHolder(
+        private val binding: ItemHoursBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-        view.findViewById<Button>(R.id.editButton).setOnClickListener {
-            onEditClick(entry.id, entry.hours)
+        fun bind(hours: HoursEntry) {
+            binding.numberText.text = (adapterPosition + 1).toString()
+            binding.hoursText.text = String.format("%.2f", hours.hours)
+            binding.dateText.text = hours.date
+
+            binding.editButton.setOnClickListener {
+                onEditClick(hours)
+            }
+
+            binding.deleteButton.setOnClickListener {
+                onDeleteClick(hours)
+            }
+        }
+    }
+
+    private class HoursDiffCallback : DiffUtil.ItemCallback<HoursEntry>() {
+        override fun areItemsTheSame(oldItem: HoursEntry, newItem: HoursEntry): Boolean {
+            return oldItem.id == newItem.id
         }
 
-        view.findViewById<Button>(R.id.deleteButton).setOnClickListener {
-            db.deleteHours(entry.id)
-            notifyDataSetChanged()
-            Toast.makeText(context, "Usunięto wpis", Toast.LENGTH_SHORT).show()
+        override fun areContentsTheSame(oldItem: HoursEntry, newItem: HoursEntry): Boolean {
+            return oldItem == newItem
         }
-
-        return view
     }
 } 

@@ -6,47 +6,40 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/numberTextView"
-        android:layout_width="0dp"
+        android:id="@+id/numberText"
+        android:layout_width="48dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center" />
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/hoursTextView"
+        android:id="@+id/hoursText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:gravity="center" />
+        android:textSize="16sp"
+        android:layout_marginStart="16dp" />
 
     <TextView
-        android:id="@+id/dateTextView"
+        android:id="@+id/dateText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:gravity="center" />
+        android:textSize="16sp"
+        android:layout_marginStart="16dp" />
 
-    <LinearLayout
-        android:layout_width="0dp"
+    <Button
+        android:id="@+id/editButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="2"
-        android:orientation="horizontal"
-        android:gravity="center">
+        android:text="Edytuj"
+        android:layout_marginStart="16dp" />
 
-        <Button
-            android:id="@+id/editButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Edytuj"
-            android:layout_marginEnd="8dp"
-            android:backgroundTint="#007AFF" />
-
-        <Button
-            android:id="@+id/deleteButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Usuń"
-            android:backgroundTint="#FF3B30" />
-    </LinearLayout>
+    <Button
+        android:id="@+id/deleteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Usuń"
+        android:layout_marginStart="8dp" />
 
 </LinearLayout> 
