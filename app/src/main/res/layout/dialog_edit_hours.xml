@@ -6,11 +6,11 @@
     android:padding="16dp">
 
     <EditText
-        android:id="@+id/editHoursEditText"
+        android:id="@+id/hoursInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Wprowadź czas (hh:mm)"
-        android:inputType="text"
-        android:maxLength="5" />
+        android:hint="Wprowadź godziny (np. 1.50)"
+        android:inputType="numberDecimal"
+        android:maxLength="6" />
 
 </LinearLayout> 
