@@ -1,56 +1,36 @@
 package com.example.motolicznik
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.motolicznik.databinding.ActivityMainBinding
+import com.example.motolicznik.databinding.DialogEditHoursBinding
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var timerTextView: TextView
-    private lateinit var startStopButton: Button
-    private lateinit var saveButton: Button
-    private lateinit var manualInputEditText: EditText
-    private lateinit var manualSaveButton: Button
-    private lateinit var listButton: Button
-
+    private lateinit var binding: ActivityMainBinding
     private var isRunning = false
-    private var seconds = 0
+    private var startTime: Long = 0
+    private var elapsedTime: Long = 0
     private val handler = Handler(Looper.getMainLooper())
-    private val runnable = object : Runnable {
+    private val updateTimeRunnable = object : Runnable {
         override fun run() {
-            if (isRunning) {
-                seconds++
-                updateTimerDisplay()
-                handler.postDelayed(this, 1000)
-            }
+            updateTimer()
+            handler.postDelayed(this, 1000)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        initializeViews()
-        setupClickListeners()
-    }
-
-    private fun initializeViews() {
-        timerTextView = findViewById(R.id.timerTextView)
-        startStopButton = findViewById(R.id.startStopButton)
-        saveButton = findViewById(R.id.saveButton)
-        manualInputEditText = findViewById(R.id.manualInputEditText)
-        manualSaveButton = findViewById(R.id.manualSaveButton)
-        listButton = findViewById(R.id.listButton)
-    }
-
-    private fun setupClickListeners() {
-        startStopButton.setOnClickListener {
+        binding.startStopButton.setOnClickListener {
             if (isRunning) {
                 stopTimer()
             } else {
@@ -58,79 +38,79 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        saveButton.setOnClickListener {
-            saveTimerValue()
+        binding.resetButton.setOnClickListener {
+            resetTimer()
         }
 
-        manualSaveButton.setOnClickListener {
-            saveManualValue()
+        binding.saveButton.setOnClickListener {
+            showSaveDialog()
         }
 
-        listButton.setOnClickListener {
-            startActivity(android.content.Intent(this, SavedHoursActivity::class.java))
+        binding.savedHoursButton.setOnClickListener {
+            val intent = Intent(this, SavedHoursActivity::class.java)
+            startActivity(intent)
         }
     }
 
     private fun startTimer() {
-        isRunning = true
-        startStopButton.text = "Stop"
-        handler.post(runnable)
+        if (!isRunning) {
+            startTime = System.currentTimeMillis() - elapsedTime
+            isRunning = true
+            binding.startStopButton.text = "Stop"
+            handler.post(updateTimeRunnable)
+        }
     }
 
     private fun stopTimer() {
-        isRunning = false
-        startStopButton.text = "Start"
-        handler.removeCallbacks(runnable)
-    }
-
-    private fun updateTimerDisplay() {
-        val hours = seconds / 3600
-        val minutes = (seconds % 3600) / 60
-        timerTextView.text = String.format("%02d:%02d", hours, minutes)
-    }
-
-    private fun saveTimerValue() {
-        if (seconds == 0) {
-            Toast.makeText(this, "Najpierw zmierz czas", Toast.LENGTH_SHORT).show()
-            return
+        if (isRunning) {
+            isRunning = false
+            binding.startStopButton.text = "Start"
+            handler.removeCallbacks(updateTimeRunnable)
         }
-
-        val hours = formatTime(seconds)
-        saveHoursToDatabase(hours)
-        seconds = 0
-        updateTimerDisplay()
     }
 
-    private fun saveManualValue() {
-        val input = manualInputEditText.text.toString()
-        if (!isValidTimeFormat(input)) {
-            Toast.makeText(this, "Wprowadź czas w formacie hh:mm", Toast.LENGTH_SHORT).show()
-            return
+    private fun resetTimer() {
+        stopTimer()
+        elapsedTime = 0
+        updateTimer()
+    }
+
+    private fun updateTimer() {
+        if (isRunning) {
+            elapsedTime = System.currentTimeMillis() - startTime
         }
-
-        saveHoursToDatabase(input)
-        manualInputEditText.text.clear()
+        val hours = elapsedTime / (1000 * 60 * 60)
+        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
+        val seconds = (elapsedTime % (1000 * 60)) / 1000
+        binding.timerText.text = String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
-    private fun saveHoursToDatabase(hours: String) {
-        val db = DatabaseHelper(this)
-        val date = SimpleDateFormat("dd:MM:yy", Locale.getDefault()).format(Date())
-        db.addHours(hours, date)
-        Toast.makeText(this, "Zapisano godziny", Toast.LENGTH_SHORT).show()
-    }
+    private fun showSaveDialog() {
+        val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
+        val hours = elapsedTime / (1000 * 60 * 60)
+        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
+        dialogBinding.hoursInput.setText(String.format("%d.%02d", hours, minutes))
 
-    private fun formatTime(seconds: Int): String {
-        val hours = seconds / 3600
-        val minutes = (seconds % 3600) / 60
-        return String.format("%02d:%02d", hours, minutes)
-    }
-
-    private fun isValidTimeFormat(time: String): Boolean {
-        return time.matches(Regex("^([0-9]{2}):([0-9]{2})$"))
+        AlertDialog.Builder(this)
+            .setTitle("Zapisz godziny")
+            .setView(dialogBinding.root)
+            .setPositiveButton("Zapisz") { _, _ ->
+                val hoursText = dialogBinding.hoursInput.text.toString()
+                try {
+                    val hours = hoursText.toDouble()
+                    val dbHelper = DatabaseHelper(this)
+                    dbHelper.addHours(hours)
+                    Toast.makeText(this, "Zapisano godziny", Toast.LENGTH_SHORT).show()
+                } catch (e: NumberFormatException) {
+                    Toast.makeText(this, "Nieprawidłowy format", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(runnable)
+        handler.removeCallbacks(updateTimeRunnable)
     }
 }

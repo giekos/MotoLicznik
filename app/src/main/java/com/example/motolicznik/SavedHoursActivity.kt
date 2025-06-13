@@ -1,62 +1,75 @@
 package com.example.motolicznik
 
 import android.os.Bundle
-import android.widget.EditText
-import android.widget.ListView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.motolicznik.databinding.ActivitySavedHoursBinding
+import com.example.motolicznik.databinding.DialogEditHoursBinding
 
 class SavedHoursActivity : AppCompatActivity() {
-    private lateinit var listView: ListView
+    private lateinit var binding: ActivitySavedHoursBinding
     private lateinit var adapter: HoursAdapter
-    private lateinit var db: DatabaseHelper
+    private lateinit var dbHelper: DatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_saved_hours)
+        binding = ActivitySavedHoursBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        db = DatabaseHelper(this)
-        listView = findViewById(R.id.hoursListView)
-        
+        dbHelper = DatabaseHelper(this)
+        setupRecyclerView()
         loadHours()
     }
 
-    private fun loadHours() {
-        val hoursList = db.getAllHours()
-        adapter = HoursAdapter(this, hoursList) { id, hours ->
-            showEditDialog(id, hours)
-        }
-        listView.adapter = adapter
+    private fun setupRecyclerView() {
+        adapter = HoursAdapter(
+            onEditClick = { hours ->
+                showEditDialog(hours)
+            },
+            onDeleteClick = { hours ->
+                showDeleteConfirmation(hours)
+            }
+        )
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.adapter = adapter
     }
 
-    private fun showEditDialog(id: Long, currentHours: String) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_hours, null)
-        val editText = dialogView.findViewById<EditText>(R.id.editHoursEditText)
-        editText.setText(currentHours)
+    private fun loadHours() {
+        val hours = dbHelper.getAllHours()
+        adapter.submitList(hours)
+    }
+
+    private fun showEditDialog(hours: Hours) {
+        val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
+        dialogBinding.hoursInput.setText(hours.hours.toString())
 
         AlertDialog.Builder(this)
             .setTitle("Edytuj godziny")
-            .setView(dialogView)
+            .setView(dialogBinding.root)
             .setPositiveButton("Zapisz") { _, _ ->
-                val newHours = editText.text.toString()
-                if (isValidTimeFormat(newHours)) {
-                    db.updateHours(id, newHours)
+                val hoursText = dialogBinding.hoursInput.text.toString()
+                try {
+                    val newHours = hoursText.toDouble()
+                    dbHelper.updateHours(hours.id, newHours)
                     loadHours()
-                } else {
-                    Toast.makeText(this, "Nieprawidłowy format czasu", Toast.LENGTH_SHORT).show()
+                } catch (e: NumberFormatException) {
+                    // Handle invalid input
                 }
             }
             .setNegativeButton("Anuluj", null)
             .show()
     }
 
-    private fun isValidTimeFormat(time: String): Boolean {
-        return time.matches(Regex("^([0-9]{2}):([0-9]{2})$"))
-    }
-
-    override fun onResume() {
-        super.onResume()
-        loadHours()
+    private fun showDeleteConfirmation(hours: Hours) {
+        AlertDialog.Builder(this)
+            .setTitle("Usuń wpis")
+            .setMessage("Czy na pewno chcesz usunąć ten wpis?")
+            .setPositiveButton("Tak") { _, _ ->
+                dbHelper.deleteHours(hours.id)
+                loadHours()
+            }
+            .setNegativeButton("Nie", null)
+            .show()
     }
 } 
