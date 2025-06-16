@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.motolicznik.databinding.ActivitySavedHoursBinding
 import com.example.motolicznik.databinding.DialogEditHoursBinding
+import com.example.motolicznik.HoursEntry
+
 
 class SavedHoursActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySavedHoursBinding
@@ -40,7 +42,7 @@ class SavedHoursActivity : AppCompatActivity() {
         adapter.submitList(hours)
     }
 
-    private fun showEditDialog(hours: Hours) {
+    private fun showEditDialog(hours: HoursEntry) {
         val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
         dialogBinding.hoursInput.setText(hours.hours.toString())
 
@@ -61,7 +63,7 @@ class SavedHoursActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showDeleteConfirmation(hours: Hours) {
+    private fun showDeleteConfirmation(hours: HoursEntry) {
         AlertDialog.Builder(this)
             .setTitle("Usuń wpis")
             .setMessage("Czy na pewno chcesz usunąć ten wpis?")

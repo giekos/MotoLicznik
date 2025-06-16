@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.motolicznik.HoursEntry
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -82,9 +83,3 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         db.delete(TABLE_HOURS, "$COLUMN_ID = ?", arrayOf(id.toString()))
     }
 }
-
-data class HoursEntry(
-    val id: Long,
-    val hours: Double,
-    val date: String
-) 
