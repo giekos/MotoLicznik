@@ -17,9 +17,18 @@ class SavedHoursActivity : AppCompatActivity() {
         binding = ActivitySavedHoursBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Enable the default action bar back button
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Zapisane godziny"
+
         dbHelper = DatabaseHelper(this)
         setupRecyclerView()
         loadHours()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
     private fun setupRecyclerView() {
