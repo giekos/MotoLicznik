@@ -1,5 +1,6 @@
 package com.example.motolicznik
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -9,8 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.motolicznik.databinding.ActivityMainBinding
 import com.example.motolicznik.databinding.DialogEditHoursBinding
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -23,19 +23,28 @@ class MainActivity : AppCompatActivity() {
             if (isRunning) {
                 elapsedTime = System.currentTimeMillis() - startTime
                 updateTimerDisplay()
+                handler.postDelayed(this, 1000)
             }
-            handler.postDelayed(this, 1000)
         }
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Krok 1: Odtwórz zapisany stan, jeśli istnieje
+        if (savedInstanceState != null) {
+            elapsedTime = savedInstanceState.getLong("elapsedTime", 0L)
+            startTime = savedInstanceState.getLong("startTime", 0L)
+            isRunning = savedInstanceState.getBoolean("isRunning", false)
+        }
+
         // Check for first run and backup restore
         checkAndPromptRestoreBackup()
 
+        // Ustawienie listenerów
         binding.startStopButton.setOnClickListener {
             if (isRunning) {
                 stopTimer()
@@ -56,8 +65,18 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, SavedHoursActivity::class.java)
             startActivity(intent)
         }
+
+        // Krok 2: Zsynchronizuj UI z odtworzonym (lub domyślnym) stanem
+        updateTimerDisplay() // Wyświetl poprawny czas
+        if (isRunning) {
+            binding.startStopButton.text = "Stop" // Ustaw tekst przycisku
+            handler.post(updateTimeRunnable)     // Wznów pętlę, jeśli stoper działał
+        } else {
+            binding.startStopButton.text = "Start" // Ustaw tekst przycisku, jeśli stoper był zatrzymany
+        }
     }
 
+    @SuppressLint("UseKtx")
     private fun checkAndPromptRestoreBackup() {
         val prefs = getSharedPreferences("motolicznik_prefs", MODE_PRIVATE)
         val alreadyRestored = prefs.getBoolean("already_restored", false)
@@ -83,6 +102,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun startTimer() {
         if (!isRunning) {
             startTime = System.currentTimeMillis() - elapsedTime
@@ -92,33 +112,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun stopTimer() {
         if (isRunning) {
             isRunning = false
+            handler.removeCallbacks(updateTimeRunnable)
+            elapsedTime = System.currentTimeMillis() - startTime
             binding.startStopButton.text = "Start"
-            // Don't remove callbacks, just stop updating elapsedTime
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun resetTimer() {
-        stopTimer()
+        isRunning = false
+        handler.removeCallbacks(updateTimeRunnable)
         elapsedTime = 0
+        startTime = 0
         updateTimerDisplay()
+        binding.startStopButton.text = "Start"
     }
 
+    @SuppressLint("DefaultLocale")
     private fun updateTimerDisplay() {
-        val hours = elapsedTime / (1000 * 60 * 60)
-        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
-        val seconds = (elapsedTime % (1000 * 60)) / 1000
+        val hours = elapsedTime / 3600000
+        val minutes = (elapsedTime % 3600000) / 60000
+        val seconds = (elapsedTime % 60000) / 1000
         binding.timerText.text = String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
+    @SuppressLint("DefaultLocale")
     private fun showSaveDialog() {
         val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
-        val hours = elapsedTime / (1000 * 60 * 60)
-        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
+        val hours = elapsedTime / 3600000
+        val minutes = (elapsedTime % 3600000) / 60000
         val totalHours = hours + (minutes / 60.0)
-        dialogBinding.hoursInput.setText(String.format("%.2f", totalHours))
+
+        // Użycie Locale.US, aby separatorem zawsze była kropka
+        dialogBinding.hoursInput.setText(String.format(Locale.US, "%.2f", totalHours))
 
         AlertDialog.Builder(this)
             .setTitle("Zapisz godziny")
@@ -126,9 +156,9 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Zapisz") { _, _ ->
                 val hoursText = dialogBinding.hoursInput.text.toString()
                 try {
-                    val hours = hoursText.toDouble()
+                    val hoursValue = hoursText.toDouble()
                     val dbHelper = DatabaseHelper(this)
-                    dbHelper.addHours(hours)
+                    dbHelper.addHours(hoursValue)
                     Toast.makeText(this, "Zapisano godziny", Toast.LENGTH_SHORT).show()
                 } catch (e: NumberFormatException) {
                     Toast.makeText(this, "Nieprawidłowy format", Toast.LENGTH_SHORT).show()
@@ -141,5 +171,12 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacks(updateTimeRunnable)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong("elapsedTime", elapsedTime)
+        outState.putLong("startTime", startTime)
+        outState.putBoolean("isRunning", isRunning)
     }
 }
