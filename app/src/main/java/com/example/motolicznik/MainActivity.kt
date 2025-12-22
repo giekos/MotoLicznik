@@ -20,7 +20,10 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private val updateTimeRunnable = object : Runnable {
         override fun run() {
-            updateTimer()
+            if (isRunning) {
+                elapsedTime = System.currentTimeMillis() - startTime
+                updateTimerDisplay()
+            }
             handler.postDelayed(this, 1000)
         }
     }
@@ -29,6 +32,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Check for first run and backup restore
+        checkAndPromptRestoreBackup()
 
         binding.startStopButton.setOnClickListener {
             if (isRunning) {
@@ -52,6 +58,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkAndPromptRestoreBackup() {
+        val prefs = getSharedPreferences("motolicznik_prefs", MODE_PRIVATE)
+        val alreadyRestored = prefs.getBoolean("already_restored", false)
+        val dbHelper = DatabaseHelper(this)
+        val dbEmpty = dbHelper.getAllHours().isEmpty()
+        val backupExists = dbHelper.isBackupFileExists()
+        if (!alreadyRestored && dbEmpty && backupExists) {
+            AlertDialog.Builder(this)
+                .setTitle("Przywracanie danych")
+                .setMessage("Czy chcesz przywrócić stare dane?")
+                .setPositiveButton("Tak") { _, _ ->
+                    val imported = dbHelper.importFromBackupFile()
+                    for (entry in imported) {
+                        dbHelper.addHours(entry.hours)
+                    }
+                    prefs.edit().putBoolean("already_restored", true).apply()
+                    Toast.makeText(this, "Przywrócono dane", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Nie") { _, _ ->
+                    prefs.edit().putBoolean("already_restored", true).apply()
+                }
+                .show()
+        }
+    }
+
     private fun startTimer() {
         if (!isRunning) {
             startTime = System.currentTimeMillis() - elapsedTime
@@ -65,20 +96,17 @@ class MainActivity : AppCompatActivity() {
         if (isRunning) {
             isRunning = false
             binding.startStopButton.text = "Start"
-            handler.removeCallbacks(updateTimeRunnable)
+            // Don't remove callbacks, just stop updating elapsedTime
         }
     }
 
     private fun resetTimer() {
         stopTimer()
         elapsedTime = 0
-        updateTimer()
+        updateTimerDisplay()
     }
 
-    private fun updateTimer() {
-        if (isRunning) {
-            elapsedTime = System.currentTimeMillis() - startTime
-        }
+    private fun updateTimerDisplay() {
         val hours = elapsedTime / (1000 * 60 * 60)
         val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
         val seconds = (elapsedTime % (1000 * 60)) / 1000
@@ -89,7 +117,8 @@ class MainActivity : AppCompatActivity() {
         val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
         val hours = elapsedTime / (1000 * 60 * 60)
         val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
-        dialogBinding.hoursInput.setText(String.format("%d.%02d", hours, minutes))
+        val totalHours = hours + (minutes / 60.0)
+        dialogBinding.hoursInput.setText(String.format("%.2f", totalHours))
 
         AlertDialog.Builder(this)
             .setTitle("Zapisz godziny")
