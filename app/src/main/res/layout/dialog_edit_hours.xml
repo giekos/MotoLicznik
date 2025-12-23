@@ -3,14 +3,70 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp">
 
-    <EditText
-        android:id="@+id/hoursInput"
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Edytuj i zapisz czas"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:layout_gravity="center"/>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Wprowadź godziny (np. 1.50)"
-        android:inputType="numberDecimal"
-        android:maxLength="6" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="16dp">
 
-</LinearLayout> 
+        <EditText
+            android:id="@+id/hoursInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="HH"
+            android:inputType="number"
+            android:maxLength="2"
+            android:minHeight="48dp"
+            android:gravity="center"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=":"
+            android:textSize="24sp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/minutesInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="MM"
+            android:inputType="number"
+            android:maxLength="2"
+            android:minHeight="48dp"
+            android:gravity="center"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=":"
+            android:textSize="24sp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/secondsInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="SS"
+            android:inputType="number"
+            android:maxLength="2"
+            android:minHeight="48dp"
+            android:gravity="center"/>
+    </LinearLayout>
+
+</LinearLayout>

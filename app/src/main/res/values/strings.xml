@@ -1,3 +1,14 @@
 <resources>
+    <!-- Nazwa aplikacji, której brakowało -->
     <string name="app_name">MotoLicznik</string>
+
+    <!-- Zasoby dla listy (item_hour_entry.xml) -->
+    <string name="action_edit">Edytuj</string>
+    <string name="action_delete">Usuń</string>
+
+    <!-- Zasoby dla okna dialogowego (dialog_edit_hours.xml) -->
+    <string name="dialog_title_edit_time">Edytuj i zapisz czas</string>
+    <string name="hint_hh">HH</string>
+    <string name="hint_mm">MM</string>
+    <string name="hint_ss">SS</string>
 </resources>

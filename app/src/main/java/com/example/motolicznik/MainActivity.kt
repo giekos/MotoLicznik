@@ -10,7 +10,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.motolicznik.databinding.ActivityMainBinding
 import com.example.motolicznik.databinding.DialogEditHoursBinding
-import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -117,8 +116,11 @@ class MainActivity : AppCompatActivity() {
         if (isRunning) {
             isRunning = false
             handler.removeCallbacks(updateTimeRunnable)
+            // Oblicz i zapisz ostateczny czas w momencie zatrzymania
             elapsedTime = System.currentTimeMillis() - startTime
             binding.startStopButton.text = "Start"
+            // Zaktualizuj wyświetlacz, aby pokazać dokładny czas zatrzymania
+            updateTimerDisplay()
         }
     }
 
@@ -142,26 +144,53 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("DefaultLocale")
     private fun showSaveDialog() {
+        if (isRunning) {
+            Toast.makeText(this, "Najpierw zatrzymaj stoper!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (elapsedTime == 0L) {
+            Toast.makeText(this, "Stoper nie zmierzył żadnego czasu.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val dialogBinding = DialogEditHoursBinding.inflate(layoutInflater)
+
+        // Rozbij elapsedTime na części HH, MM, SS
         val hours = elapsedTime / 3600000
         val minutes = (elapsedTime % 3600000) / 60000
-        val totalHours = hours + (minutes / 60.0)
+        val seconds = (elapsedTime % 60000) / 1000
 
-        // Użycie Locale.US, aby separatorem zawsze była kropka
-        dialogBinding.hoursInput.setText(String.format(Locale.US, "%.2f", totalHours))
+        // Wstaw wartości do odpowiednich pól EditText
+        dialogBinding.hoursInput.setText(hours.toString())
+        dialogBinding.minutesInput.setText(minutes.toString())
+        dialogBinding.secondsInput.setText(seconds.toString())
 
         AlertDialog.Builder(this)
             .setTitle("Zapisz godziny")
             .setView(dialogBinding.root)
             .setPositiveButton("Zapisz") { _, _ ->
-                val hoursText = dialogBinding.hoursInput.text.toString()
                 try {
-                    val hoursValue = hoursText.toDouble()
+                    // Odczytaj wartości z pól (domyślnie 0, jeśli puste)
+                    val h = dialogBinding.hoursInput.text.toString().toLongOrNull() ?: 0L
+                    val m = dialogBinding.minutesInput.text.toString().toLongOrNull() ?: 0L
+                    val s = dialogBinding.secondsInput.text.toString().toLongOrNull() ?: 0L
+
+                    // Złóż z powrotem w jedną liczbę (ułamkowe godziny)
+                    val totalHoursValue = h.toDouble() + (m.toDouble() / 60.0) + (s.toDouble() / 3600.0)
+
+                    // Jeśli wynik jest 0, nie ma sensu zapisywać
+                    if (totalHoursValue == 0.0) {
+                        Toast.makeText(this, "Nie można zapisać zerowego czasu.", Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
+
                     val dbHelper = DatabaseHelper(this)
-                    dbHelper.addHours(hoursValue)
+                    dbHelper.addHours(totalHoursValue)
                     Toast.makeText(this, "Zapisano godziny", Toast.LENGTH_SHORT).show()
+                    // Po zapisie zresetuj stoper do stanu początkowego.
+                    resetTimer()
                 } catch (e: NumberFormatException) {
-                    Toast.makeText(this, "Nieprawidłowy format", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Wprowadzono nieprawidłowe wartości.", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Anuluj", null)
